@@ -1,0 +1,74 @@
+// ------------------------
+// Model extraction
+// ------------------------
+
+_model = get_model();
+
+function get_model(){
+
+device = defaultObject();
+sub = device.subCircuit
+devices = sub.devices
+
+return _model=devices[0]
+}
+
+// ------------------------
+// Get model
+// ------------------------
+device = defaultObject();
+model = _model;
+
+model.setAttribute('Name', device.name);
+
+// ------------------------
+// Parse methods
+// ------------------------
+parseScriptFile('WECC_WP_m.dwj');
+load_data = new oDevice_WECC_WP(model);
+
+// ------------------------
+// Set in service
+// ------------------------
+if (in_service == 0) {
+    model.setAttribute('Exclude', 'Ex');
+} else {
+    model.setAttribute('Exclude', '');
+}
+
+// ------------------------
+// Power base
+// ------------------------
+n_gen = Number(load_data.Parameters.Ngen);
+s_single = Number(load_data.Parameters.Sgen);
+s_total = n_gen * s_single;
+
+// ------------------------
+// Active power
+// ------------------------
+load_data.Parameters.Ngen_in_service = n_gen;
+
+p_poi_pu = p_poi / s_total;
+
+if (p_poi_pu > 1) {
+    p_poi_pu = 1;
+}
+
+load_data.Parameters.Pref_poi = p_poi_pu;
+
+// ------------------------
+// Reactive power control
+// ------------------------
+q_poi_pu = q_poi / s_total;
+
+if (q_poi_pu > 0.33) {
+    q_poi_pu = 0.33;
+}
+
+load_data.Parameters.QC_select = 1;
+load_data.Parameters.Qpoi_pu = q_poi_pu;
+
+// ------------------------
+// Saving
+// ------------------------
+load_data.SaveData();

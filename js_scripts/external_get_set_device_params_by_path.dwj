@@ -1,0 +1,301 @@
+// external_get_set_device_params_by_path.dwj
+//
+// Get/set device parameters using a logical path from currentCircuit.
+//
+// Expected global values from Python:
+//
+//   _ext_param_dev_path_       Logical path
+//
+//   _ext_param_dev_operation_  "get" or "put"
+//   _ext_param_dev_data_       JSON string, only for "put"
+//
+// Return:
+//
+//   get success : JSON string with parameters
+//   put success : "OK"
+//   failure     : string starting with "***"
+
+parseScriptFile("json2.js");
+
+var devicePath = getGlobalValue("_ext_param_dev_path_");
+var operation = getGlobalValue("_ext_param_dev_operation_");
+
+if (devicePath == null || String(devicePath) == "") {
+    "*** No device path specified";
+}
+else if (operation == null || String(operation) == "") {
+    "*** No operation specified";
+}
+else if (currentCircuit == null) {
+    "*** No currentCircuit";
+}
+else {
+    var dev = resolvePath(currentCircuit, String(devicePath));
+
+    if (dev == null) {
+        "*** Device not found by path: " + String(devicePath);
+    }
+    else {
+        var scriptDevObj = getScriptDevObjForDevice(dev);
+
+        if (scriptDevObj == "") {
+            "*** Empty Script.DevObj for device path: "
+                + String(devicePath)
+                + ", LibType: "
+                + getDeviceLibType(dev);
+        }
+        else {
+            try {
+                parseScriptFile(scriptDevObj);
+                var oDevice = get_dev_methods(dev);
+
+                if (oDevice == null) {
+                    "*** get_dev_methods(dev) returned null for path: "
+                        + String(devicePath)
+                        + ", script: "
+                        + String(scriptDevObj);
+                }
+                else {
+                    var paramsObj = null;
+
+                    if (oDevice.Parameters != null) {
+                        paramsObj = oDevice.Parameters;
+                    }
+                    else {
+                        paramsObj = oDevice;
+                    }
+
+                    if (String(operation) == "get") {
+                        JSON.stringify(exportSimpleParams(paramsObj));
+                    }
+                    else if (String(operation) == "put") {
+                        var dataText = getGlobalValue("_ext_param_dev_data_");
+
+                        if (dataText == null || String(dataText) == "") {
+                            "*** No parameter data specified for put operation";
+                        }
+                        else {
+                            var newParams = JSON.parse(String(dataText));
+
+                            for (var key in newParams) {
+                                paramsObj[key] = newParams[key];
+                            }
+
+                            oDevice.CalledByScript = true;
+                            oDevice.Error = false;
+                            oDevice.ErrorMessage = "";
+
+                            oDevice.SaveData();
+
+                            if (oDevice.Error) {
+                                "*** SaveData error: " + String(oDevice.ErrorMessage);
+                            }
+                            else {
+                                if (typeof oDevice.CreateRunDataFile == "function") {
+                                    oDevice.CreateRunDataFile();
+                                }
+
+                                "OK";
+                            }
+                        }
+                    }
+                    else {
+                        "*** Unknown operation: " + String(operation);
+                    }
+                }
+            } catch (eMain) {
+                "*** Device parameter operation failed for path "
+                    + String(devicePath)
+                    + ", script "
+                    + String(scriptDevObj)
+                    + ": "
+                    + String(eMain);
+            }
+        }
+    }
+}
+
+
+// ============================================================
+// Script.DevObj resolution
+// ============================================================
+
+function getScriptDevObjForDevice(dev)
+{
+    var scriptDevObj = "";
+
+    try {
+        scriptDevObj = String(dev.getAttribute("Script.DevObj"));
+    } catch (e1) {
+        scriptDevObj = "";
+    }
+
+    if (scriptDevObj != "") {
+        return scriptDevObj;
+    }
+
+    var libType = getDeviceLibType(dev);
+
+    if (isSynchronousLibType(libType)) {
+        return "machine_sm_d.dwj";
+    }
+
+    return "";
+}
+
+
+function getDeviceLibType(dev)
+{
+    var libType = "";
+
+    try {
+        libType = String(dev.getAttribute("LibType"));
+    } catch (e1) {
+        libType = "";
+    }
+
+    return libType;
+}
+
+
+function isSynchronousLibType(libType)
+{
+    var text = String(libType).replace(/^\s+|\s+$/g, "").toLowerCase();
+
+    return (
+        text == "synchronous" ||
+        text == "synchronous machine"
+    );
+}
+
+
+// ============================================================
+// Path resolution
+// ============================================================
+
+function resolvePath(rootCircuit, pathText)
+{
+    var parts = splitPath(pathText);
+
+    if (parts.length == 0) {
+        return null;
+    }
+
+    var circuit = rootCircuit;
+    var dev = null;
+
+    for (var i = 0; i < parts.length; i++) {
+        dev = findDeviceInCircuitByName(circuit, parts[i]);
+
+        if (dev == null) {
+            return null;
+        }
+
+        if (i < parts.length - 1) {
+            try {
+                circuit = dev.subCircuit;
+            } catch (eSub) {
+                circuit = null;
+            }
+
+            if (circuit == null) {
+                return null;
+            }
+        }
+    }
+
+    return dev;
+}
+
+
+function findDeviceInCircuitByName(circuit, targetName)
+{
+    var devs = null;
+
+    try {
+        devs = circuit.devices;
+    } catch (e0) {
+        return null;
+    }
+
+    if (devs == null) {
+        return null;
+    }
+
+    for (var i = 0; i < devs.length; i++) {
+        var d = null;
+
+        try {
+            d = devs[i];
+        } catch (e1) {
+            d = null;
+        }
+
+        if (d == null) {
+            continue;
+        }
+
+        var name = "";
+
+        try {
+            name = String(d.name);
+        } catch (e2) {
+            name = "";
+        }
+
+        if (name == targetName) {
+            return d;
+        }
+    }
+
+    return null;
+}
+
+
+function splitPath(pathText)
+{
+    var raw = String(pathText).split("/");
+    var parts = new Array();
+
+    for (var i = 0; i < raw.length; i++) {
+        var item = String(raw[i]).replace(/^\s+|\s+$/g, "");
+
+        if (item != "") {
+            parts[parts.length] = item;
+        }
+    }
+
+    return parts;
+}
+
+
+// ============================================================
+// Parameter export
+// ============================================================
+
+function exportSimpleParams(obj)
+{
+    var out = {};
+
+    if (obj == null) {
+        return out;
+    }
+
+    for (var key in obj) {
+        try {
+            var value = obj[key];
+            var valueType = typeof value;
+
+            if (
+                valueType == "string" ||
+                valueType == "number" ||
+                valueType == "boolean"
+            ) {
+                out[key] = value;
+            }
+        } catch (e) {
+        }
+    }
+
+    return out;
+}
