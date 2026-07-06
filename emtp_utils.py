@@ -397,12 +397,12 @@ class Device(Context):
 class Library(Context):
 
     @classmethod
-    def open_library(cls, emtp_object: Any, path_library: str = None) -> None:
+    def open_library(cls, emtp_object: Any, library_path: str = None) -> None:
 
-        if path_library is None:
+        if library_path is None:
             raise ValueError("Library path is required.")
 
-        emtp_object.openLibrary(path_library, True)
+        emtp_object.openLibrary(library_path, True)
 
     @classmethod
     def find_library(cls, emtp_object: Any, name: str) -> Any:

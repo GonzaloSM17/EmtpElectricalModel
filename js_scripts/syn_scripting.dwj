@@ -34,41 +34,6 @@ function get_devices(){
 }
 
 // ------------------------
-// Devices extraction
-// ------------------------
-
-_devices = get_devices();
-
-function get_devices(){
-
-    device = defaultObject();
-    sub = device.subCircuit;
-    devices = sub.devices;
-
-    machine = null;
-    lf = null;
-
-    for (i = 0; i < devices.length; i++) {
-
-        dev = devices[i];
-        libtype = dev.getAttribute("LibType");
-
-        if (libtype == "Synchronous") {
-            machine = dev;
-        }
-
-        if (libtype == "Load-Flow Bus") {
-            lf = dev;
-        }
-    }
-
-    return _devices = {
-        machine: machine,
-        lf: lf
-    };
-}
-
-// ------------------------
 // Get model and devices
 // ------------------------
 device = defaultObject();
@@ -109,17 +74,17 @@ for (i = 0; i < devices.length; i++) {
 // ------------------------
 // Active Power set
 // ------------------------
-p_set = Number(p_dispatch);
+p_setpoint = Number(p_setpoint);
 
-if (p_set < 0) {
-    p_set = 0;
+if (p_setpoint < 0) {
+    p_setpoint = 0;
 }
 
-if (p_set > s_nominal) {
-    p_set = s_nominal;
+if (p_setpoint > s_nominal) {
+    p_setpoint = s_nominal;
 }
 
-lf_data.P_set = String(p_set);
+lf_data.P_set = String(p_setpoint);
 
 // ------------------------
 // Bus type and Q / V set
@@ -128,49 +93,49 @@ if (bus_type == 1) {
 
     q_min = Number(lf_data.Q_min);
     q_max = Number(lf_data.Q_max);
-    q_set = Number(q_dispatch);
+    q_setpoint = Number(q_setpoint);
 
-    if (q_set < q_min) {
-        q_set = q_min;
+    if (q_setpoint < q_min) {
+        q_setpoint = q_min;
     }
 
-    if (q_set > q_max) {
-        q_set = q_max;
+    if (q_setpoint > q_max) {
+        q_setpoint = q_max;
     }
 
     lf_data.Bus_Type = 'PQ';
-    lf_data.Q_set = String(q_set);
+    lf_data.Q_set = String(q_setpoint);
 
 } else if (bus_type == 2) {
 
-    v_set = Number(v_setpoint) * vk_nominal;
+    v_setpoint = Number(v_setpoint) * vk_nominal;
 
     lf_data.Bus_Type = 'PV';
-    lf_data.Voltage_Slack = String(v_set);
+    lf_data.Voltage_Slack = String(v_setpoint);
 
 } else if (bus_type == 3) {
 
-    v_set = Number(v_setpoint) * vk_nominal;
+    v_setpoint = Number(v_setpoint) * vk_nominal;
 
     lf_data.Bus_Type = 'Slack';
-    lf_data.Voltage_Slack = String(v_set);
+    lf_data.Voltage_Slack = String(v_setpoint);
 
 } else {
 
     q_min = Number(lf_data.Q_min);
     q_max = Number(lf_data.Q_max);
-    q_set = Number(q_dispatch);
+    q_setpoint = Number(q_setpoint);
 
-    if (q_set < q_min) {
-        q_set = q_min;
+    if (q_setpoint < q_min) {
+        q_setpoint = q_min;
     }
 
-    if (q_set > q_max) {
-        q_set = q_max;
+    if (q_setpoint > q_max) {
+        q_setpoint = q_max;
     }
 
     lf_data.Bus_Type = 'PQ';
-    lf_data.Q_set = String(q_set);
+    lf_data.Q_set = String(q_setpoint);
 }
 lf_data.SaveData();
 

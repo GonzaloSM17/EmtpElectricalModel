@@ -102,7 +102,7 @@ class RenewableEnergySource(EmtpUnit):
 
     def set_p(self, value: float) -> None:
         value = round(value, 1)
-        self.set_param("p_poi", value)
+        self.set_param("p_setpoint", value)
 
     # def set_q_control_mode(self, mode: int) -> None:
     #     if mode not in [1, 2, 3]:
@@ -111,11 +111,11 @@ class RenewableEnergySource(EmtpUnit):
 
     def set_q(self, value: float) -> None:
         value = round(value, 1)
-        self.set_param("q_poi", value)
+        self.set_param("q_setpoint", value)
 
     # def set_v(self, value: float) -> None:
     #     value = round(value, 2)
-    #     self.set_param("v_poi", value)
+    #     self.set_param("v_setpoint", value)
 
     # def set_pf(self, value: float) -> None:
     #     value = round(value, 3)
@@ -131,13 +131,15 @@ class RenewableEnergySource(EmtpUnit):
 class SynchronousSource(EmtpUnit):
 
     lf_object: Any = None
+    tf_object: Any = None
+    load_object: Any = None
 
     def set_in_service(self, flag: int) -> None:
         self.set_param("in_service", int(flag))
 
     def set_p(self, value: float) -> None:
         value = round(value, 1)
-        self.set_param("p_dispatch", value)
+        self.set_param("p_setpoint", value)
 
     def set_bus_type(self, mode: int) -> None:
         if mode not in [1, 2, 3]:
@@ -146,11 +148,27 @@ class SynchronousSource(EmtpUnit):
 
     def set_q(self, value: float) -> None:
         value = round(value, 1)
-        self.set_param("q_dispatch", value)
+        self.set_param("q_setpoint", value)
 
     def set_v(self, value: float) -> None:
         value = round(value, 2)
         self.set_param("v_setpoint", value)
+
+    @property
+    def unit_path(self) -> str:
+        return self.object.name + "/" + self.unit_object.name
+
+    @property
+    def lf_path(self) -> str:
+        return self.object.name + "/" + self.lf_object.name
+
+    @property
+    def tf_path(self) -> str:
+        return self.object.name + "/" + self.tf_object.name
+
+    @property
+    def load_path(self) -> str:
+        return self.object.name + "/" + self.load_object.name
 
 
 # Class for EMTP classify

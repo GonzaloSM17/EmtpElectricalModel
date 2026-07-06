@@ -48,27 +48,26 @@ s_total = n_gen * s_single;
 // ------------------------
 load_data.Parameters.Ngen_in_service = n_gen;
 
-p_poi_pu = p_poi / s_total;
+P_setpoint_pu = p_setpoint / s_total;
 
-if (p_poi_pu > 1) {
-    p_poi_pu = 1;
+if (P_setpoint_pu > 1) {
+    P_setpoint_pu = 1;
 }
 
-load_data.Parameters.Pref_poi = p_poi_pu;
+load_data.Parameters.Pref_poi = P_setpoint_pu;
 
 // ------------------------
 // Reactive power control
 // ------------------------
-q_poi_pu = q_poi / s_total;
+q_setpoint_pu = q_setpoint / s_total;
 
-if (q_poi_pu > 0.33) {
-    q_poi_pu = 0.33;
+if (q_setpoint_pu > 0.33) {
+    q_setpoint_pu = 0.33;
 }
 
 load_data.Parameters.QC_select = 1;
-load_data.Parameters.Qpoi_pu = q_poi_pu;
+load_data.Parameters.Qpoi_pu = q_setpoint_pu;
 
 // ------------------------
 // Saving
 // ------------------------
-load_data.SaveData();
