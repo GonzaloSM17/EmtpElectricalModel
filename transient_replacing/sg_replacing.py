@@ -1,32 +1,50 @@
+"""
+Synchronous generation replacement script.
+
+This script replaces existing synchronous generation units in the active EMTP
+design with the standard CEN SG thermal or hydro template, preserving the
+original connection, position, name, load-flow data, transformer data and
+selected synchronous machine parameters.
+
+Only ordering and comments were added. The original execution logic is kept.
+"""
+
 from unit_extractor_v1 import *
 
 library_path = "C:\\Users\\gonzalo.sanchez\\OneDrive - Coordinador Eléctrico Nacional\\C01. Simulación y Laboratorio en Tiempo Real\\04. EMTP Modelo Eléctrico\\09. Templates Reemplazo\\CEN Devices.clf"
 
+
 if __name__ == "__main__":
 
+    # -------------------------------------------------------------------------
+    # EMTP session and library initialization
+    # -------------------------------------------------------------------------
     emtp_client = EmtpComClient(attach_existing=True)
     emtp_object = emtp_client.emtp_object
 
     if not emtp_object.currentDesign:
         Design.open_design(emtp_object=emtp_object)
 
-    ## Loading Library
     Library.open_library(emtp_object=emtp_object, library_path=library_path)
 
+    # -------------------------------------------------------------------------
+    # Unit extraction
+    # -------------------------------------------------------------------------
     unit_extractor = UnitExtractor(emtp_object=emtp_object)
     unit_extractor.execute()
 
     units = unit_extractor.units.synchronous_units
 
+    # -------------------------------------------------------------------------
+    # Replacement loop
+    # -------------------------------------------------------------------------
     i = 0
     unit = None
     for unit in units:
 
-        # print(
-        #     f"{unit.object.name}/{unit.unit_object.name}/{.lf_object.name}/{unit.tf_object.name}"
-        # )
-
-        ## unit
+        # ---------------------------------------------------------------------
+        # Original synchronous machine data
+        # ---------------------------------------------------------------------
         if not unit.unit_object.getAttribute("Script.DevObj"):
             unit.unit_object.setAttribute("Script.DevObj", "machine_sm_d.dwj")
 
@@ -34,7 +52,9 @@ if __name__ == "__main__":
             emtp_object=emtp_object, device_path=unit.unit_path
         )
 
-        ## lf
+        # ---------------------------------------------------------------------
+        # Original load-flow bus data
+        # ---------------------------------------------------------------------
         if not unit.lf_object.getAttribute("Script.DevObj"):
             unit.lf_object.setAttribute("Script.DevObj", "load_flow_bus_d.dwj")
 
@@ -42,7 +62,9 @@ if __name__ == "__main__":
             emtp_object=emtp_object, device_path=unit.lf_path
         )
 
-        # tf
+        # ---------------------------------------------------------------------
+        # Original transformer data
+        # ---------------------------------------------------------------------
         if not unit.tf_object.getAttribute("Script.DevObj"):
             unit.tf_object.setAttribute("Script.DevObj", "yy_d.dwj")
 
@@ -50,7 +72,9 @@ if __name__ == "__main__":
             emtp_object=emtp_object, device_path=unit.tf_path
         )
 
-        ## load
+        # ---------------------------------------------------------------------
+        # Original auxiliary load data, if available
+        # ---------------------------------------------------------------------
         try:
             if not unit.load_object.getAttribute("Script.DevObj"):
                 unit.load_object.setAttribute("Script.DevObj", "pqload_d.dwj")
@@ -65,6 +89,9 @@ if __name__ == "__main__":
                 f"Error setting Script.DevObj for load_object: {e} to {unit.object.name}"
             )
 
+        # ---------------------------------------------------------------------
+        # Drawing data and connection reference
+        # ---------------------------------------------------------------------
         attr_to_draw = {
             "name": unit.object.name,
             "posX": unit.object.posX,
@@ -74,13 +101,16 @@ if __name__ == "__main__":
 
         if attr_to_draw["orientation"] == "E":
             attr_to_draw["posX"] = attr_to_draw["posX"] - 2000
+
         if attr_to_draw["orientation"] == "w":
             attr_to_draw["posX"] = attr_to_draw["posX"] + 300
 
         pin = unit.object.pins[0]
         signal = pin.signal
 
-        ## Calculate some attr
+        # ---------------------------------------------------------------------
+        # Operating point and load-flow controls
+        # ---------------------------------------------------------------------
         p_setpoint = float(attr_lf.get("P_set", ""))
         q_setpoint = float(attr_lf.get("Q_set", ""))
         v_setpoint = round(
@@ -110,14 +140,15 @@ if __name__ == "__main__":
         else:
             bus_type = 1
 
-        ## attribute_to_mask
+        # ---------------------------------------------------------------------
+        # Mask setpoints
+        # ---------------------------------------------------------------------
         if in_service == "Ex":
             in_service = 0
             p_setpoint = 0
             q_setpoint = 0
             v_setpoint = 1
             bus_type = 1
-
         else:
             in_service = 1
             p_setpoint = float(p_setpoint)
@@ -125,12 +156,14 @@ if __name__ == "__main__":
             v_setpoint = v_setpoint
             bus_type = int(bus_type)
 
-        ## AddObject
+        # ---------------------------------------------------------------------
+        # Template selection and old object deletion
+        # ---------------------------------------------------------------------
         if "TER_" in unit.object.name:
             library_template_name = "SG_THERMAL_TEMPLATE"
         else:
             library_template_name = "SG_HYDRO_TEMPLATE"
-        ## Delete old object
+
         unit.object.remove
 
         library_object = Library.find_type(
@@ -139,6 +172,9 @@ if __name__ == "__main__":
             type_name=library_template_name,
         )
 
+        # ---------------------------------------------------------------------
+        # Insert new synchronous generation template
+        # ---------------------------------------------------------------------
         new_model_mask = Design.design(emtp_object).addDevice(
             library_object,
             attr_to_draw["posX"],
@@ -151,7 +187,7 @@ if __name__ == "__main__":
         except Exception as e:
             new_model_mask.makeUnique
 
-        # Connection
+        # Reconnect the new model to the original signal.
         new_pin = new_model_mask.pins[0]
         new_pin.connectTo(signal, True)
 
@@ -159,15 +195,21 @@ if __name__ == "__main__":
         new_model_subcc = new_model_mask.subCircuit
         devices = new_model_subcc.devices
 
+        # ---------------------------------------------------------------------
+        # Locate internal devices in the new template
+        # ---------------------------------------------------------------------
         load = None
 
         for device in devices:
             if device.name == "SG":
                 unit = device
+
             if device.name == "LF_SG":
                 lf = device
+
             if device.name == "TR_SG":
                 tf = device
+
             if device.name == "SSAA":
                 load = device
 
@@ -182,19 +224,18 @@ if __name__ == "__main__":
             load_object=load,
         )
 
-        # SetAttribute
+        # ---------------------------------------------------------------------
+        # Ensure internal device data scripts are available
+        # ---------------------------------------------------------------------
         if not new_device.unit_object.getAttribute("Script.DevObj"):
             unit.unit_object.setAttribute("Script.DevObj", "machine_sm_d.dwj")
 
-        ## lf
         if not new_device.lf_object.getAttribute("Script.DevObj"):
             unit.lf_object.setAttribute("Script.DevObj", "load_flow_bus_d.dwj")
 
-        # tf
         if not new_device.tf_object.getAttribute("Script.DevObj"):
             unit.tf_object.setAttribute("Script.DevObj", "yy_d.dwj")
 
-        ## load
         try:
             if not new_device.load_object.getAttribute("Script.DevObj"):
                 unit.load_object.setAttribute("Script.DevObj", "pqload_d.dwj")
@@ -204,7 +245,9 @@ if __name__ == "__main__":
                 f"Error setting Script.DevObj for load_object: {e} to {new_device.object.name}"
             )
 
-        ## Preview treatment for SM
+        # ---------------------------------------------------------------------
+        # Preview treatment for synchronous machine outputs
+        # ---------------------------------------------------------------------
         attr_unit["i_agline_o"] = 2
         attr_unit["Efss_o"] = 2
         attr_unit["vd_o"] = 2
@@ -221,16 +264,25 @@ if __name__ == "__main__":
         else:
             attr_unit["npoles"] = 4
 
+        # ---------------------------------------------------------------------
+        # Write original parameters into the new template internals
+        # ---------------------------------------------------------------------
         Utils.set_params_from_dict_by_path(
             emtp_object=emtp_object,
             device_path=new_device.unit_path,
             params=attr_unit,
         )
+
         Utils.set_params_from_dict_by_path(
-            emtp_object=emtp_object, device_path=new_device.lf_path, params=attr_lf
+            emtp_object=emtp_object,
+            device_path=new_device.lf_path,
+            params=attr_lf,
         )
+
         Utils.set_params_from_dict_by_path(
-            emtp_object=emtp_object, device_path=new_device.tf_path, params=attr_tf
+            emtp_object=emtp_object,
+            device_path=new_device.tf_path,
+            params=attr_tf,
         )
 
         if attr_load != {}:
@@ -243,17 +295,21 @@ if __name__ == "__main__":
         else:
             new_device.load_object.remove
 
+        # ---------------------------------------------------------------------
+        # Apply mask values
+        # ---------------------------------------------------------------------
         new_device.set_in_service(in_service)
         new_device.set_p(p_setpoint)
         new_device.set_q(q_setpoint)
         new_device.set_bus_type(bus_type)
         new_device.set_v(v_setpoint)
 
+        # ---------------------------------------------------------------------
+        # Temporary execution limiter
+        # ---------------------------------------------------------------------
         unit = None
         i += 1
         if i >= 1:
-            for key, attr in attr_unit.items():
-                print(f"{key}: {attr}")
             Design.save(emtp_object=emtp_object)
-            # Simulation.run_load_flow(emtp_object=emtp_object)
+            Design.open_design(emtp_object=emtp_object)
             break
