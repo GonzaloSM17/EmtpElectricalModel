@@ -22,8 +22,8 @@ if __name__ == "__main__":
     emtp_client = EmtpComClient(attach_existing=True)
     emtp_object = emtp_client.emtp_object
 
-    if not emtp_object.currentDesign:
-        Design.open_design(emtp_object=emtp_object)
+    # if not emtp_object.currentDesign:
+    #     Design.open_design(emtp_object=emtp_object)
 
     Library.open_library(emtp_object=emtp_object, library_path=library_path)
 
@@ -183,9 +183,9 @@ if __name__ == "__main__":
         )
 
         try:
-            new_model_mask.makeUnique()
-        except Exception as e:
             new_model_mask.makeUnique
+        except Exception as e:
+            f"make unique doesn't work"
 
         # Reconnect the new model to the original signal.
         new_pin = new_model_mask.pins[0]
@@ -203,17 +203,24 @@ if __name__ == "__main__":
         for device in devices:
             if device.name == "SG":
                 unit = device
+                unit.setAttribute("Name", attr_to_draw["name"])
 
             if device.name == "LF_SG":
+                lf_name = "LF_" + attr_to_draw["name"]
                 lf = device
+                lf.setAttribute("Name", lf_name)
 
             if device.name == "TR_SG":
+                tf_name = "TR_" + attr_to_draw["name"]
                 tf = device
+                tf.setAttribute("Name", tf_name)
 
             if device.name == "SSAA":
+                load_name = "SSAA_" + attr_to_draw["name"]
                 load = device
+                load.setAttribute("Name", load_name)
 
-            if not load:
+            elif not load:
                 load = None
 
         new_device = SynchronousSource(
@@ -228,17 +235,17 @@ if __name__ == "__main__":
         # Ensure internal device data scripts are available
         # ---------------------------------------------------------------------
         if not new_device.unit_object.getAttribute("Script.DevObj"):
-            unit.unit_object.setAttribute("Script.DevObj", "machine_sm_d.dwj")
+            new_device.unit_object.setAttribute("Script.DevObj", "machine_sm_d.dwj")
 
         if not new_device.lf_object.getAttribute("Script.DevObj"):
-            unit.lf_object.setAttribute("Script.DevObj", "load_flow_bus_d.dwj")
+            new_device.lf_object.setAttribute("Script.DevObj", "load_flow_bus_d.dwj")
 
         if not new_device.tf_object.getAttribute("Script.DevObj"):
-            unit.tf_object.setAttribute("Script.DevObj", "yy_d.dwj")
+            new_device.tf_object.setAttribute("Script.DevObj", "yy_d.dwj")
 
         try:
             if not new_device.load_object.getAttribute("Script.DevObj"):
-                unit.load_object.setAttribute("Script.DevObj", "pqload_d.dwj")
+                new_device.load_object.setAttribute("Script.DevObj", "pqload_d.dwj")
 
         except Exception as e:
             print(
@@ -259,7 +266,7 @@ if __name__ == "__main__":
         attr_unit["Pmss_o"] = 2
         attr_unit["Mass_OSC_data"] = "2 3 0 0 0"
 
-        if "TER_" in unit.object.name:
+        if "TER_" in new_device.object.name:
             attr_unit["npoles"] = 2
         else:
             attr_unit["npoles"] = 4

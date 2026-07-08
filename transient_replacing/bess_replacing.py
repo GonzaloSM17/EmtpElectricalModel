@@ -201,4 +201,5 @@ if __name__ == "__main__":
             print(device.unit_object.name)
             Design.save(emtp_object=emtp_object)
             Design.open_design(emtp_object=emtp_object)
+            # Simulation.run_load_flow(emtp_object=emtp_object)
             break
