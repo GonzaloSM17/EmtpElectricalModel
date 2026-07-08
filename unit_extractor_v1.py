@@ -52,7 +52,9 @@ class UnitExtractor:
             # elif device.getAttribute("LibType") == "Bess":
             #     self.units.bess_units.append(device)
 
-            elif "AC-DC converter" in device.getAttribute("LibType"):
+            elif "AC-DC converter" in device.getAttribute(
+                "LibType"
+            ) or "BESS_TEMPLATE" in device.getAttribute("LibType"):
                 unit = Bess(object=None, unit_object=device)
                 self.units.bess_units.append(unit)
 
@@ -70,10 +72,15 @@ class UnitExtractor:
                     if "synchronous" in sub_device.getAttribute("LibType").lower():
                         syn_unit = sub_device
 
-                    if sub_device.getAttribute("LibType") == "Load-Flow Bus":
+                    elif sub_device.getAttribute("LibType") == "Load-Flow Bus":
                         lf_unit = sub_device
 
-                    if "TR_" in sub_device.getAttribute("Name"):
+                    elif (
+                        "TR_" in sub_device.getAttribute("Name")
+                        or "p30" in sub_device.getAttribute("Part")
+                        or "n30" in sub_device.getAttribute("Part")
+                        or "m30" in sub_device.getAttribute("Part")
+                    ):
                         tf_unit = sub_device
 
                     try:
@@ -86,6 +93,7 @@ class UnitExtractor:
                         pass
 
                 if syn_unit and lf_unit:
+                    # print(parent_device.name)
                     unit = Synchronous(
                         object=parent_device,
                         unit_object=syn_unit,
@@ -119,3 +127,6 @@ if __name__ == "__main__":
 
     emtp_client = EmtpComClient(attach_existing=True)
     emtp_object = emtp_client.emtp_object
+
+    extractor = UnitExtractor(emtp_object=emtp_object)
+    extractor.execute()
