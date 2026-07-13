@@ -14,9 +14,9 @@ class XmlDevice:
 
     XML_SEPARATOR = "<XMLStringSeparator>"
 
-    # def __post_init__(self):
-    #     if self.object is None:
-    #         raise ValueError(f"{self.__class__.__name__} object cannot be None.")
+    def __post_init__(self):
+        if self.object is None:
+            raise ValueError(f"{self.__class__.__name__} object cannot be None.")
 
     @property
     def xml_data_grids_raw(self) -> str:
@@ -126,12 +126,25 @@ class RenewableEnergySource(EmtpUnit):
     #         raise ValueError("Invalid p_f_control_mode")
     #     self.set_param("p_f_control_mode", int(mode))
 
+    def get_in_service(self) -> int:
+        return self.get_param("in_service")
+
+    def get_p(self) -> float:
+        return self.get_param("p_setpoint")
+
+    def get_q(self) -> float:
+        return self.get_param("q_setpoint")
+
+    @property
+    def unit_path(self):
+        return self.object.name + "/" + self.unit_object.name
+
 
 @dataclass
 class SynchronousSource(EmtpUnit):
 
-    lf_object: Any = None
-    tf_object: Any = None
+    loadflow_object: Any = None
+    trf_object: Any = None
     load_object: Any = None
 
     def set_in_service(self, flag: int) -> None:
@@ -152,6 +165,18 @@ class SynchronousSource(EmtpUnit):
 
     def set_v(self, value: float) -> None:
         value = round(value, 2)
+
+        # Limit by grid-code
+        if value < 0.95:
+            value = 0.95
+
+        elif value > 1.05:
+            value = 1.05
+
+        else:
+            value = value
+
+        # set value
         self.set_param("v_setpoint", value)
 
     @property
@@ -159,12 +184,12 @@ class SynchronousSource(EmtpUnit):
         return self.object.name + "/" + self.unit_object.name
 
     @property
-    def lf_path(self) -> str:
-        return self.object.name + "/" + self.lf_object.name
+    def loadflow_path(self) -> str:
+        return self.object.name + "/" + self.loadflow_object.name
 
     @property
-    def tf_path(self) -> str:
-        return self.object.name + "/" + self.tf_object.name
+    def trf_path(self) -> str:
+        return self.object.name + "/" + self.trf_object.name
 
     @property
     def load_path(self) -> str:
@@ -184,6 +209,11 @@ class WindTurbine(RenewableEnergySource):
 
 @dataclass
 class Bess(RenewableEnergySource):
+    pass
+
+
+@dataclass
+class Der(RenewableEnergySource):
     pass
 
 

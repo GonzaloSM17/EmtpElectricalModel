@@ -8,7 +8,7 @@ positioning, name, operating point and selected sizing parameters.
 Only ordering and comments were added. The original execution logic is kept.
 """
 
-from unit_extractor_v1 import *
+from transient_replacing_old.unit_extractor_old import *
 
 library_path = "C:\\Users\\gonzalo.sanchez\\OneDrive - Coordinador Eléctrico Nacional\\C01. Simulación y Laboratorio en Tiempo Real\\04. EMTP Modelo Eléctrico\\09. Templates Reemplazo\\CEN Devices.clf"
 

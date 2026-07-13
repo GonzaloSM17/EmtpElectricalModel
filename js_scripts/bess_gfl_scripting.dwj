@@ -2,7 +2,7 @@
 // Model extraction
 // ------------------------
 
-_model = get_model();
+_model_ = get_model();
 
 function get_model(){
 
@@ -10,17 +10,25 @@ device = defaultObject();
 sub = device.subCircuit
 devices = sub.devices
 
-return _model=devices[0]
+for (i = 0; i < devices.length; i++) {
+
+    dev = devices[i];
+    libtype = dev.getAttribute("LibType");
+
+    if (libtype == "AC-DC converter with control") {
+        unit = dev;
+    }
+}
+
+return _model_=unit
 }
 
 // ------------------------
 // Get model
 // ------------------------
 device = defaultObject();
-devices = device.subCircuit.devices
-model = _model;
-
-model.setAttribute('Name', device.name);
+all_devices = device.subCircuit.devices
+model = _model_;
 
 // ------------------------
 // Parse methods
@@ -31,7 +39,7 @@ load_data = new oDevice_Inverter(model);
 // ------------------------
 // Set in service
 // ------------------------
-for (i = 0; i < devices.length; i++) {
+for (i = 0; i < all_devices.length; i++) {
 
     internal_device = devices[i];
 

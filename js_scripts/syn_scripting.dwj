@@ -2,7 +2,7 @@
 // Devices extraction
 // ------------------------
 
-_devices = get_devices();
+_devices_ = get_devices();
 
 function get_devices(){
 
@@ -37,10 +37,11 @@ function get_devices(){
 // Get model and devices
 // ------------------------
 device = defaultObject();
-devices = device.subCircuit.devices;
+all_devices = device.subCircuit.devices;
+devices = _devices_
 
 machine = _devices.machine;
-lf = _devices.lf;
+lf = devices.lf;
 
 // ------------------------
 // Parse data
@@ -60,9 +61,9 @@ vk_nominal = Number(machine_data.Rating_V);
 // ------------------------
 // Set in service
 // ------------------------
-for (i = 0; i < devices.length; i++) {
+for (i = 0; i < all_devices.length; i++) {
 
-    internal_device = devices[i];
+    internal_device = all_devices[i];
 
     if (in_service == 0) {
         internal_device.setAttribute('Exclude', 'Ex');
@@ -137,7 +138,6 @@ if (bus_type == 1) {
     lf_data.Bus_Type = 'PQ';
     lf_data.Q_set = String(q_setpoint);
 }
-lf_data.SaveData();
 
 // ------------------------
 // Assign LF to machine and Saving

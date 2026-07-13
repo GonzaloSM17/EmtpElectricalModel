@@ -34,31 +34,31 @@ class UnitExtractor:
         _devices = self.devices
 
         for device in _devices:
-            if "WECC PV" in device.getAttribute(
-                "LibType" or "PV_TEMPLATE" in device.getAttribute("LibType")
-            ) and "PFV_" in device.getAttribute("Name"):
+            # if "WECC PV" in device.getAttribute(
+            #     "LibType" or "PV_TEMPLATE" in device.getAttribute("LibType")
+            # ) and "PFV_" in device.getAttribute("Name"):
 
-                unit = Photovoltaic(object=None, unit_object=device)
+            #     unit = Photovoltaic(object=None, unit_object=device)
 
-                self.units.pv_units.append(unit)
+            #     self.units.pv_units.append(unit)
 
-            if (
-                "WECC W" in device.getAttribute("LibType")
-                or "WT_TEMPLATE" in device.getAttribute("LibType")
-            ) and "PE_" in device.getAttribute("Name"):
-                unit = WindTurbine(object=None, unit_object=device)
-                self.units.wt_units.append(unit)
+            # if (
+            #     "WECC W" in device.getAttribute("LibType")
+            #     or "WT_TEMPLATE" in device.getAttribute("LibType")
+            # ) and "PE_" in device.getAttribute("Name"):
+            #     unit = WindTurbine(object=None, unit_object=device)
+            #     self.units.wt_units.append(unit)
 
-            # elif device.getAttribute("LibType") == "Bess":
-            #     self.units.bess_units.append(device)
+            # # elif device.getAttribute("LibType") == "Bess":
+            # #     self.units.bess_units.append(device)
 
-            elif "AC-DC converter" in device.getAttribute(
-                "LibType"
-            ) or "BESS_TEMPLATE" in device.getAttribute("LibType"):
-                unit = Bess(object=None, unit_object=device)
-                self.units.bess_units.append(unit)
+            # elif "AC-DC converter" in device.getAttribute(
+            #     "LibType"
+            # ) or "BESS_TEMPLATE" in device.getAttribute("LibType"):
+            #     unit = Bess(object=None, unit_object=device)
+            #     self.units.bess_units.append(unit)
 
-            elif any(
+            if any(
                 prefix in device.getAttribute("Name")[:4]
                 for prefix in ["HE_", "HP_", "TER_"]
             ):
@@ -72,7 +72,7 @@ class UnitExtractor:
                     if "synchronous" in sub_device.getAttribute("LibType").lower():
                         syn_unit = sub_device
 
-                    elif sub_device.getAttribute("LibType") == "Load-Flow Bus":
+                    elif "Load-Flow" in sub_device.getAttribute("LibType"):
                         lf_unit = sub_device
 
                     elif (
@@ -81,31 +81,27 @@ class UnitExtractor:
                         or "n30" in sub_device.getAttribute("Part")
                         or "m30" in sub_device.getAttribute("Part")
                     ):
-                        tf_unit = sub_device
-
-                    try:
+                        trf_unit = sub_device
+                    else:
                         if sub_device.getAttribute("Part") == "PQload":
                             load_unit = sub_device
                         else:
                             load_unit = None
-                    except:
-                        load_unit = None
-                        pass
 
-                if syn_unit and lf_unit:
+                if syn_unit and lf_unit and trf_unit:
                     # print(parent_device.name)
                     unit = Synchronous(
                         object=parent_device,
                         unit_object=syn_unit,
-                        lf_object=lf_unit,
-                        tf_object=tf_unit,
+                        loadflow_object=lf_unit,
+                        trf_object=trf_unit,
                         load_object=load_unit,
                     )
                     self.units.synchronous_units.append(unit)
 
                     syn_unit = None
                     lf_unit = None
-                    tf_unit = None
+                    trf_unit = None
                     load_unit = None
 
                 else:
@@ -114,7 +110,7 @@ class UnitExtractor:
                     )
                     syn_unit = None
                     lf_unit = None
-                    tf_unit = None
+                    trf_unit = None
                     load_unit = None
 
     def execute(self):
@@ -130,3 +126,42 @@ if __name__ == "__main__":
 
     extractor = UnitExtractor(emtp_object=emtp_object)
     extractor.execute()
+
+    for unit in extractor.units.synchronous_units:
+
+        attr_trf = Utils.get_params_to_dict_by_path(
+            emtp_object=emtp_object, device_path=unit.trf_path
+        )
+        tap_ratio = attr_trf["tap_ratio"]
+        dw = attr_trf["DW"]
+
+        attr_unit = Utils.get_params_to_dict_by_path(
+            emtp_object=emtp_object, device_path=unit.unit_path
+        )
+
+        try:
+            attr_lf = Utils.get_params_to_dict_by_path(
+                emtp_object=emtp_object, device_path=unit.loadflow_path
+            )
+        except:
+            if not unit.loadflow_object.getAttribute("Script.DevObj"):
+                unit.loadflow_object.setAttribute(
+                    "Script.DevObj", "load_flow_bus_d.dwj"
+                )
+            attr_lf = Utils.get_params_to_dict_by_path(
+                emtp_object=emtp_object, device_path=unit.loadflow_path
+            )
+
+        q_max = float(attr_lf["Q_max"])
+        q_min = float(attr_lf["Q_min"])
+
+        s_machine = float(attr_unit["Rating_S"])
+
+        if q_max > s_machine:
+            # q_max = 0.44 * s_machine
+            print(unit.object.name)
+            print(f"max: {q_max}. It's out of range of s:{s_machine}")
+
+        if q_min < (-1) * s_machine:
+            print(unit.object.name)
+            print(f"min: {q_min}. It's out of range of s:{s_machine}")

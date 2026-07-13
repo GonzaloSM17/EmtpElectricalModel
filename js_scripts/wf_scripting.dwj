@@ -2,7 +2,7 @@
 // Model extraction
 // ------------------------
 
-_model = get_model();
+_model_ = get_model();
 
 function get_model(){
 
@@ -10,16 +10,25 @@ device = defaultObject();
 sub = device.subCircuit
 devices = sub.devices
 
-return _model=devices[0]
+for (i = 0; i < devices.length; i++) {
+
+    dev = devices[i];
+    libtype = dev.getAttribute("LibType");
+
+    if (libtype == "WECC Wind park") {
+        unit = dev;
+    }
+}
+
+return _model_=unit
 }
 
 // ------------------------
 // Get model
 // ------------------------
 device = defaultObject();
-model = _model;
-
-model.setAttribute('Name', device.name);
+all_devices = device.subCircuit.devices;
+model = _model_;
 
 // ------------------------
 // Parse methods
@@ -30,10 +39,15 @@ load_data = new oDevice_WECC_WP(model);
 // ------------------------
 // Set in service
 // ------------------------
-if (in_service == 0) {
-    model.setAttribute('Exclude', 'Ex');
-} else {
-    model.setAttribute('Exclude', '');
+for (i = 0; i < all_devices.length; i++) {
+
+    internal_device = all_devices[i];
+
+    if (in_service == 0) {
+        internal_device.setAttribute('Exclude', 'Ex');
+    } else {
+        internal_device.setAttribute('Exclude', '');
+    }
 }
 
 // ------------------------
@@ -71,3 +85,4 @@ load_data.Parameters.Qpoi_pu = q_setpoint_pu;
 // ------------------------
 // Saving
 // ------------------------
+load_data.SaveData();
