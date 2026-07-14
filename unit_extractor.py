@@ -151,7 +151,7 @@ class UnitExtractor:
 
                     else:
                         print(
-                            f"Error: {parent_device.name} does not have a synchronous or load-flow unit or transformer associated"
+                            f"Error: {parent_device.name} does not have a synchronous, load-flow unit or transformer associated"
                         )
                         syn_unit = None
                         lf_unit = None

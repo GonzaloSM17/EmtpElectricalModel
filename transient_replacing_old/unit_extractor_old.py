@@ -60,7 +60,7 @@ class UnitExtractor:
 
             if any(
                 prefix in device.getAttribute("Name")[:4]
-                for prefix in ["HE_", "HP_", "TER_"]
+                for prefix in ["HE_", "HP_", "TER_", "GEO_"]
             ):
                 parent_device = device
                 subcct = parent_device.subCircuit
