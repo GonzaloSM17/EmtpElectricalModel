@@ -79,7 +79,7 @@ if (q_setpoint_pu > 0.33) {
     q_setpoint_pu = 0.33;
 }
 
-load_data.Parameters.QC_select = 1;
+load_data.Parameters.QC_select = '1';
 load_data.Parameters.Qpoi_pu = q_setpoint_pu;
 
 // ------------------------

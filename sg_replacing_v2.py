@@ -11,7 +11,9 @@ Only ordering and comments were added. The original execution logic is kept.
 
 from unit_extractor import *
 
-library_path = "C:\\Users\\gonzalo.sanchez\\OneDrive - Coordinador Eléctrico Nacional\\C01. Simulación y Laboratorio en Tiempo Real\\04. EMTP Modelo Eléctrico\\09. Templates Reemplazo\\CEN Devices.clf"
+library_path_GS = "C:\\Users\\gonzalo.sanchez\\OneDrive - Coordinador Eléctrico Nacional\\C01. Simulación y Laboratorio en Tiempo Real\\04. EMTP Modelo Eléctrico\\09. Templates Reemplazo\\CEN Devices.clf"
+library_path_KA = "C:\\Users\\kelly.allendes\\Downloads\\CEN Devices.clf"
+
 
 
 if __name__ == "__main__":
@@ -25,7 +27,7 @@ if __name__ == "__main__":
     # if not emtp_object.currentDesign:
     #     Design.open_design(emtp_object=emtp_object)
 
-    Library.open_library(emtp_object=emtp_object, library_path=library_path)
+    Library.open_library(emtp_object=emtp_object, library_path=library_path_KA)
 
     # -------------------------------------------------------------------------
     # Unit extraction

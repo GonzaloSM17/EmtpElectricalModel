@@ -1,8 +1,8 @@
 from unit_extractor import *
 import time
 
-library_path = "C:\\Users\\gonzalo.sanchez\\OneDrive - Coordinador Eléctrico Nacional\\C01. Simulación y Laboratorio en Tiempo Real\\04. EMTP Modelo Eléctrico\\09. Templates Reemplazo\\CEN Devices.clf"
-
+library_path_GS = "C:\\Users\\gonzalo.sanchez\\OneDrive - Coordinador Eléctrico Nacional\\C01. Simulación y Laboratorio en Tiempo Real\\04. EMTP Modelo Eléctrico\\09. Templates Reemplazo\\CEN Devices.clf"
+library_path_KA = "C:\\Users\\kelly.allendes\\Downloads\\CEN Devices.clf"
 
 class ReplacingIBR:
 
@@ -106,7 +106,7 @@ class ReplacingIBR:
             self.signal_voltage = None
 
     def _open_lib(self):
-        Library.open_library(emtp_object=self.emtp_object, library_path=library_path)
+        Library.open_library(emtp_object=self.emtp_object, library_path=library_path_KA)
 
     def _get_lib_type(self):
 
@@ -149,7 +149,11 @@ class ReplacingIBR:
 
             # time.sleep(1)
 
-            self.new_device.makeUnique
+            # self.new_device.makeUnique
+            try:
+                self.new_device.makeUnique()
+            except Exception as e:
+                self.new_device.makeUnique
             self.new_device.setAttribute("Name", self.device_name)
 
             new_pin = self.new_device.pins[0]
@@ -188,7 +192,7 @@ class ReplacingIBR:
         # for mask
         self.new_device_object.set_in_service(int(self.in_service))
         self.new_device_object.set_p(float(self.p_setpoint))
-        self.new_device_object.set_p(float(self.q_setpoint))
+        self.new_device_object.set_q(float(self.q_setpoint))
 
     def _signal_voltage(self):
 
@@ -251,4 +255,5 @@ if __name__ == "__main__":
         # i += 1
         # if i >= 10:
     Design.save(emtp_object=emtp_object)
-    Simulation.run_load_flow(emtp_object=emtp_object)
+    Design.open_design(emtp_object=emtp_object)
+    # Simulation.run_load_flow(emtp_object=emtp_object)
