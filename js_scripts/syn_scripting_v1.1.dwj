@@ -1,0 +1,373 @@
+// ------------------------
+// Internal default values
+// ------------------------
+
+p_min_default = 0.0;
+
+q_default = 0.0;
+v_default = 1.0;
+
+v_min = 0.95;
+v_max = 1.05;
+
+// ------------------------
+// Helper functions
+// ------------------------
+
+function set_value_if_changed(object_data, field_name, new_value) {
+
+    var old_value;
+    var value_string;
+
+    value_string = String(new_value);
+    old_value = String(object_data[field_name]);
+
+    if (old_value != value_string) {
+        object_data[field_name] = value_string;
+        return true;
+    }
+
+    return false;
+}
+
+
+function set_attribute_if_changed(device, attribute_name, new_value) {
+
+    var old_value;
+    var value_string;
+
+    value_string = String(new_value);
+    old_value = String(device.getAttribute(attribute_name));
+
+    if (old_value != value_string) {
+        device.setAttribute(attribute_name, value_string);
+        return true;
+    }
+
+    return false;
+}
+
+
+// ------------------------
+// Devices extraction
+// ------------------------
+
+function get_devices() {
+
+    var device;
+    var sub;
+    var devices;
+
+    var machine;
+    var lf;
+
+    var i;
+    var dev;
+    var libtype;
+    var part;
+
+    device = defaultObject();
+    sub = device.subCircuit;
+    devices = sub.devices;
+
+    machine = null;
+    lf = null;
+
+    for (i = 0; i < devices.length; i++) {
+
+        dev = devices[i];
+
+        libtype = dev.getAttribute("LibType");
+        part = dev.getAttribute("Part");
+
+        if (libtype == "Synchronous" || part == "SM") {
+            machine = dev;
+        }
+
+        if (libtype == "Load-Flow Bus") {
+            lf = dev;
+        }
+    }
+
+    return {
+        machine: machine,
+        lf: lf,
+        all_devices: devices
+    };
+}
+
+
+// ------------------------
+// Get devices
+// ------------------------
+
+devices_data = get_devices();
+
+machine = devices_data.machine;
+lf = devices_data.lf;
+all_devices = devices_data.all_devices;
+
+
+// ------------------------
+// Safe machine name for logs
+// ------------------------
+
+machine_name = "UNKNOWN_MACHINE";
+
+if (machine != null) {
+    machine_name = machine.getAttribute("Name");
+}
+
+
+// ------------------------
+// Validate devices
+// ------------------------
+
+if (machine == null) {
+    writeln("ERROR SG initial condition: synchronous machine not found.");
+}
+
+if (lf == null) {
+    writeln("ERROR SG initial condition [" + machine_name + "]: Load-Flow Bus not found.");
+}
+
+
+// ------------------------
+// Continue only if required devices exist
+// ------------------------
+
+if (machine != null && lf != null) {
+
+    changed_machine = false;
+    changed_lf = false;
+
+    // ------------------------
+    // Parse data
+    // ------------------------
+
+    parseScriptFile("machine_sm_m.dwj");
+    machine_data = new oDevice_SM(machine);
+
+    parseScriptFile("load_flow_bus_m.dwj");
+    lf_data = new oDevice_Load_flow_bus(lf);
+
+
+    // ------------------------
+    // Machine nominal data
+    // ------------------------
+
+    s_nominal = Number(machine_data.Rating_S);
+    vk_nominal = Number(machine_data.Rating_V);
+
+    if (isNaN(s_nominal) || s_nominal <= 0) {
+        s_nominal = 0.0;
+        writeln("ERROR SG initial condition [" + machine_name + "]: invalid Rating_S.");
+    }
+
+    if (isNaN(vk_nominal) || vk_nominal <= 0) {
+        vk_nominal = 1.0;
+        writeln("ERROR SG initial condition [" + machine_name + "]: invalid Rating_V.");
+    }
+
+
+    // ------------------------
+    // Set in service
+    // ------------------------
+
+    exclude_value = "";
+
+    if (Number(in_service) == 0) {
+        exclude_value = "Ex";
+    }
+
+    for (i = 0; i < all_devices.length; i++) {
+        internal_device = all_devices[i];
+        set_attribute_if_changed(internal_device, "Exclude", exclude_value);
+    }
+
+
+    // ------------------------
+    // Active power set
+    // ------------------------
+
+    p_setpoint = Number(p_setpoint);
+
+    if (isNaN(p_setpoint)) {
+        p_setpoint = p_min_default;
+        writeln("ERROR SG initial condition [" + machine_name + "]: invalid p_setpoint. Default used.");
+    }
+
+    if (p_setpoint < 0) {
+        p_setpoint = 0.0;
+    }
+
+    if (p_setpoint > s_nominal) {
+        p_setpoint = s_nominal;
+    }
+
+    if (set_value_if_changed(lf_data, "P_set", p_setpoint)) {
+        changed_lf = true;
+    }
+
+
+    // ------------------------
+    // Bus type
+    // ------------------------
+
+    bus_type = Number(bus_type);
+
+    if (bus_type != 1 && bus_type != 2 && bus_type != 3) {
+        bus_type = 1;
+        writeln("ERROR SG initial condition [" + machine_name + "]: invalid bus_type. PQ used.");
+    }
+
+
+    // ------------------------
+    // PQ bus
+    // ------------------------
+
+    if (bus_type == 1) {
+
+        q_min = Number(lf_data.Q_min);
+        q_max = Number(lf_data.Q_max);
+        q_setpoint = Number(q_setpoint);
+
+        if (isNaN(q_min)) {
+            q_min = -s_nominal;
+            writeln("ERROR SG initial condition [" + machine_name + "]: invalid Q_min. Default used.");
+        }
+
+        if (isNaN(q_max)) {
+            q_max = s_nominal;
+            writeln("ERROR SG initial condition [" + machine_name + "]: invalid Q_max. Default used.");
+        }
+
+        if (q_min > q_max) {
+            q_min_temp = q_min;
+            q_min = q_max;
+            q_max = q_min_temp;
+            writeln("ERROR SG initial condition [" + machine_name + "]: Q_min greater than Q_max. Values swapped.");
+        }
+
+        if (isNaN(q_setpoint)) {
+            q_setpoint = q_default;
+            writeln("ERROR SG initial condition [" + machine_name + "]: invalid q_setpoint. Default used.");
+        }
+
+        if (q_setpoint < q_min) {
+            q_setpoint = q_min;
+        }
+
+        if (q_setpoint > q_max) {
+            q_setpoint = q_max;
+        }
+
+        if (set_value_if_changed(lf_data, "Bus_Type", "PQ")) {
+            changed_lf = true;
+        }
+
+        if (set_value_if_changed(lf_data, "Q_set", q_setpoint)) {
+            changed_lf = true;
+        }
+    }
+
+
+    // ------------------------
+    // PV bus
+    // ------------------------
+
+    if (bus_type == 2) {
+
+        v_setpoint = Number(v_setpoint);
+
+        if (isNaN(v_setpoint)) {
+            v_setpoint = v_default;
+            writeln("ERROR SG initial condition [" + machine_name + "]: invalid v_setpoint. Default used.");
+        }
+
+        if (v_setpoint < v_min) {
+            v_setpoint = v_min;
+        }
+
+        if (v_setpoint > v_max) {
+            v_setpoint = v_max;
+        }
+
+        v_setpoint = v_setpoint * vk_nominal;
+
+        if (set_value_if_changed(lf_data, "Bus_Type", "PV")) {
+            changed_lf = true;
+        }
+
+        if (set_value_if_changed(lf_data, "Voltage_Slack", v_setpoint)) {
+            changed_lf = true;
+        }
+    }
+
+
+    // ------------------------
+    // Slack bus
+    // ------------------------
+
+    if (bus_type == 3) {
+
+        v_setpoint = Number(v_setpoint);
+
+        if (isNaN(v_setpoint)) {
+            v_setpoint = v_default;
+            writeln("ERROR SG initial condition [" + machine_name + "]: invalid v_setpoint. Default used.");
+        }
+
+        if (v_setpoint < v_min) {
+            v_setpoint = v_min;
+        }
+
+        if (v_setpoint > v_max) {
+            v_setpoint = v_max;
+        }
+
+        v_setpoint = v_setpoint * vk_nominal;
+
+        if (set_value_if_changed(lf_data, "Bus_Type", "Slack")) {
+            changed_lf = true;
+        }
+
+        if (set_value_if_changed(lf_data, "Voltage_Slack", v_setpoint)) {
+            changed_lf = true;
+        }
+    }
+
+
+    // ------------------------
+    // Assign LF to machine
+    // ------------------------
+
+    lf_part = String(lf.getAttribute("Part"));
+    lf_name = String(lf.getAttribute("Name"));
+    lf_device_name = lf_part + ":" + lf_name;
+
+    machine_part = String(machine.getAttribute("Part"));
+    machine_name = String(machine.getAttribute("Name"));
+    retrieve_lf_data = machine_part + ":" + machine_name;
+
+    if (set_value_if_changed(machine_data, "LFdevName", lf_device_name)) {
+        changed_machine = true;
+    }
+
+    if (set_value_if_changed(lf_data, "TalkdevName", retrieve_lf_data)) {
+        changed_lf = true;
+    }
+
+
+    // ------------------------
+    // Save only if changed
+    // ------------------------
+
+    if (changed_machine) {
+        machine_data.SaveData();
+    }
+
+    if (changed_lf) {
+        lf_data.SaveData();
+    }
+}

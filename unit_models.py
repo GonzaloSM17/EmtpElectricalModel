@@ -179,6 +179,18 @@ class SynchronousSource(EmtpUnit):
         # set value
         self.set_param("v_setpoint", value)
 
+    def get_p(self) -> float:
+        return self.get_param("p_setpoint")
+
+    def get_q(self) -> float:
+        return self.get_param("q_setpoint")
+
+    def get_v(self) -> float:
+        return self.get_param("v_setpoint")
+
+    def get_in_service(self) -> float:
+        return self.get_param("in_service")
+
     @property
     def unit_path(self) -> str:
         return self.object.name + "/" + self.unit_object.name

@@ -1,8 +1,9 @@
 from unit_extractor import *
 import time
 
-library_path_GS = "C:\\Users\\gonzalo.sanchez\\OneDrive - Coordinador Eléctrico Nacional\\C01. Simulación y Laboratorio en Tiempo Real\\04. EMTP Modelo Eléctrico\\09. Templates Reemplazo\\CEN Devices.clf"
+library_path_GS = "C:\\Users\\gonzalo.sanchez\\OneDrive - Coordinador Eléctrico Nacional\\C01. Simulación y Laboratorio en Tiempo Real\\04. EMTP Modelo Eléctrico\\09. Templates Reemplazo\\CEN Devices_v1.1.clf"
 library_path_KA = "C:\\Users\\kelly.allendes\\Downloads\\CEN Devices.clf"
+
 
 class ReplacingIBR:
 
@@ -33,7 +34,7 @@ class ReplacingIBR:
                 else:
                     self.type = None
                     print(
-                        f"{self.device_name} couldn't be replace. The name doesn't containt any key for recongnize the type"
+                        f"{self.device_name} couldn't be replace. The name doesn't containt any key to recongnize the type"
                     )
                     return
 
@@ -75,7 +76,7 @@ class ReplacingIBR:
             if self.device.object.orientation == "w":
                 self.attr_to_draw = {
                     "name": self.device.object.name,
-                    "posX": self.device.object.posX + 200,
+                    "posX": self.device.object.posX + 100,
                     "posY": self.device.object.posY,
                     "orientation": self.device.object.orientation,
                 }
@@ -83,7 +84,7 @@ class ReplacingIBR:
             else:
                 self.attr_to_draw = {
                     "name": self.device.object.name,
-                    "posX": self.device.object.posX - 200,
+                    "posX": self.device.object.posX - 100,
                     "posY": self.device.object.posY,
                     "orientation": self.device.object.orientation,
                 }
@@ -106,7 +107,7 @@ class ReplacingIBR:
             self.signal_voltage = None
 
     def _open_lib(self):
-        Library.open_library(emtp_object=self.emtp_object, library_path=library_path_KA)
+        Library.open_library(emtp_object=self.emtp_object, library_path=library_path_GS)
 
     def _get_lib_type(self):
 
@@ -156,6 +157,11 @@ class ReplacingIBR:
                 self.new_device.makeUnique
             self.new_device.setAttribute("Name", self.device_name)
 
+            # No read only
+            subcct = self.new_device.subCircuit
+            subcct.isReadOnly = "False"
+
+            # Connect to grid
             new_pin = self.new_device.pins[0]
             new_pin.connectTo(self.signal_to_connect, True)
 
@@ -166,7 +172,7 @@ class ReplacingIBR:
             subcct = self.new_device.subCircuit
             unit_new_device = subcct.devices[0]
 
-            # Naming
+            # Naming new device
             unit_new_device.setAttribute("Name", self.new_device.name)
 
             # New Dataclass
@@ -241,19 +247,26 @@ if __name__ == "__main__":
     extractor = UnitExtractor(emtp_object=emtp_object)
     extractor.execute()
 
-    # i = 0
+    i = 0
 
     for unit in (
-        extractor.units.pv_units + extractor.units.wf_units + extractor.units.der_units
+        # extractor.units.pv_units +
+        # extractor.units.wf_units +
+        extractor.units.der_units
     ):
 
-        print(unit.object.name)
+        # print(unit.object.name)
+        print(unit.unit_object.name)
+
+        # break
 
         replacing_operator = ReplacingIBR(emtp_object=emtp_object, device=unit)
         replacing_operator.execute()
 
-        # i += 1
+        # i += 3
         # if i >= 10:
+        #     break
+
     Design.save(emtp_object=emtp_object)
-    Design.open_design(emtp_object=emtp_object)
+    # Design.open_design(emtp_object=emtp_object)
     # Simulation.run_load_flow(emtp_object=emtp_object)
