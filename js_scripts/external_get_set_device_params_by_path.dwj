@@ -5,7 +5,6 @@
 // Expected global values from Python:
 //
 //   _ext_param_dev_path_       Logical path
-//
 //   _ext_param_dev_operation_  "get" or "put"
 //   _ext_param_dev_data_       JSON string, only for "put"
 //
@@ -30,12 +29,14 @@ else if (currentCircuit == null) {
     "*** No currentCircuit";
 }
 else {
+
     var dev = resolvePath(currentCircuit, String(devicePath));
 
     if (dev == null) {
         "*** Device not found by path: " + String(devicePath);
     }
     else {
+
         var scriptDevObj = getScriptDevObjForDevice(dev);
 
         if (scriptDevObj == "") {
@@ -45,8 +46,11 @@ else {
                 + getDeviceLibType(dev);
         }
         else {
+
             try {
+
                 parseScriptFile(scriptDevObj);
+
                 var oDevice = get_dev_methods(dev);
 
                 if (oDevice == null) {
@@ -56,25 +60,21 @@ else {
                         + String(scriptDevObj);
                 }
                 else {
-                    var paramsObj = null;
 
-                    if (oDevice.Parameters != null) {
-                        paramsObj = oDevice.Parameters;
-                    }
-                    else {
-                        paramsObj = oDevice;
-                    }
+                    var paramsObj = getParamsObject(oDevice);
 
                     if (String(operation) == "get") {
                         JSON.stringify(exportSimpleParams(paramsObj));
                     }
                     else if (String(operation) == "put") {
+
                         var dataText = getGlobalValue("_ext_param_dev_data_");
 
                         if (dataText == null || String(dataText) == "") {
                             "*** No parameter data specified for put operation";
                         }
                         else {
+
                             var newParams = JSON.parse(String(dataText));
 
                             for (var key in newParams) {
@@ -91,6 +91,7 @@ else {
                                 "*** SaveData error: " + String(oDevice.ErrorMessage);
                             }
                             else {
+
                                 if (typeof oDevice.CreateRunDataFile == "function") {
                                     oDevice.CreateRunDataFile();
                                 }
@@ -103,7 +104,9 @@ else {
                         "*** Unknown operation: " + String(operation);
                     }
                 }
+
             } catch (eMain) {
+
                 "*** Device parameter operation failed for path "
                     + String(devicePath)
                     + ", script "
@@ -130,17 +133,7 @@ function getScriptDevObjForDevice(dev)
         scriptDevObj = "";
     }
 
-    if (scriptDevObj != "") {
-        return scriptDevObj;
-    }
-
-    var libType = getDeviceLibType(dev);
-
-    if (isSynchronousLibType(libType)) {
-        return "machine_sm_d.dwj";
-    }
-
-    return "";
+    return scriptDevObj;
 }
 
 
@@ -158,14 +151,21 @@ function getDeviceLibType(dev)
 }
 
 
-function isSynchronousLibType(libType)
-{
-    var text = String(libType).replace(/^\s+|\s+$/g, "").toLowerCase();
+// ============================================================
+// Device object parameter container
+// ============================================================
 
-    return (
-        text == "synchronous" ||
-        text == "synchronous machine"
-    );
+function getParamsObject(oDevice)
+{
+    if (oDevice == null) {
+        return null;
+    }
+
+    if (oDevice.Parameters != null) {
+        return oDevice.Parameters;
+    }
+
+    return oDevice;
 }
 
 
@@ -185,6 +185,7 @@ function resolvePath(rootCircuit, pathText)
     var dev = null;
 
     for (var i = 0; i < parts.length; i++) {
+
         dev = findDeviceInCircuitByName(circuit, parts[i]);
 
         if (dev == null) {
@@ -192,6 +193,7 @@ function resolvePath(rootCircuit, pathText)
         }
 
         if (i < parts.length - 1) {
+
             try {
                 circuit = dev.subCircuit;
             } catch (eSub) {
@@ -223,6 +225,7 @@ function findDeviceInCircuitByName(circuit, targetName)
     }
 
     for (var i = 0; i < devs.length; i++) {
+
         var d = null;
 
         try {
@@ -258,6 +261,7 @@ function splitPath(pathText)
     var parts = new Array();
 
     for (var i = 0; i < raw.length; i++) {
+
         var item = String(raw[i]).replace(/^\s+|\s+$/g, "");
 
         if (item != "") {
@@ -282,7 +286,9 @@ function exportSimpleParams(obj)
     }
 
     for (var key in obj) {
+
         try {
+
             var value = obj[key];
             var valueType = typeof value;
 
@@ -293,6 +299,7 @@ function exportSimpleParams(obj)
             ) {
                 out[key] = value;
             }
+
         } catch (e) {
         }
     }

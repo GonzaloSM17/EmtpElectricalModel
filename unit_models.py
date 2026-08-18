@@ -3,7 +3,7 @@ from com_client import *
 
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Optional
 
 
 @dataclass
@@ -77,6 +77,25 @@ class XmlDevice:
         raise RuntimeError(f"Parameter not found in XMLDataGrids: {name}")
 
 
+@dataclass
+class EmtpLoad(XmlDevice):
+
+    load_object: Any = None
+
+    @property
+    def name(self) -> str:
+        if self.object:
+            return self.object.getAttribute("Name")
+        elif self.load_object:
+            return self.load_object.getAttribute("Name")
+        else:
+            return None
+
+    @property
+    def libtype(self) -> str:
+        return self.load_object.getAttribute("LibType")
+
+
 # General classes for set and get attributes
 @dataclass
 class EmtpUnit(XmlDevice):
@@ -86,7 +105,10 @@ class EmtpUnit(XmlDevice):
 
     @property
     def name(self) -> str:
-        return self.unit_object.getAttribute("Name")
+        if self.object:
+            return self.object.getAttribute("Name")
+        elif self.unit_object:
+            return self.unit_object.getAttribute("Name")
 
     @property
     def libtype(self) -> str:
@@ -191,6 +213,17 @@ class SynchronousSource(EmtpUnit):
     def get_in_service(self) -> float:
         return self.get_param("in_service")
 
+    def get_bus_type(self) -> float:
+
+        bus_type = self.get_param("bus_type")
+
+        if bus_type == 1 or bus_type == "1":
+            return "PQ"
+        elif bus_type == 2 or bus_type == "2":
+            return "PV"
+        elif bus_type == 3 or bus_type == "3":
+            return "Slack"
+
     @property
     def unit_path(self) -> str:
         return self.object.name + "/" + self.unit_object.name
@@ -232,3 +265,39 @@ class Der(RenewableEnergySource):
 @dataclass
 class Synchronous(SynchronousSource):
     pass
+
+
+@dataclass
+class Load(EmtpLoad):
+
+    def get_in_service(self) -> int:
+        if self.object:
+            in_service = self.object.getAttribute("Exclude")
+            return 0 if in_service == "Ex" else 1
+
+        elif self.load_object:
+            in_service = self.load_object.getAttribute("Exclude")
+            return 0 if in_service == "Ex" else 1
+
+        return 1
+
+    def get_p(self) -> float:
+
+        if self.object:
+            return self.get_param("Load_fixed")
+
+        return 0.0
+
+    def get_q(self) -> float:
+
+        if self.object:
+            return self.get_param("Reactive_Load")
+        return 0.0
+
+    @property
+    def load_path(self) -> str:
+
+        if self.load_object:
+            return self.load_object.getAttribute("Name")
+        else:
+            return None

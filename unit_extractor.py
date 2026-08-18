@@ -16,6 +16,7 @@ class UnitManager:
     bess_units: List[Bess] = field(default_factory=list)
     syn_units: List[Synchronous] = field(default_factory=list)
     der_units: List[Der] = field(default_factory=list)
+    load_units: List[Load] = field(default_factory=list)
 
 
 class UnitExtractor:
@@ -158,8 +159,27 @@ class UnitExtractor:
                         trf_unit = None
                         load_unit = None
 
+            elif "PQ load" in parent_device.getAttribute(
+                "LibType"
+            ) or "EDAC" in parent_device.getAttribute("LibType"):
+
+                if "PQ" in parent_device.getAttribute("LibType"):
+                    child_device = parent_device
+                    parent_device = ""
+                    device = Load(object=parent_device, load_object=child_device)
+                    device.object = None
+                    self.units.load_units.append(device)
+
                 else:
-                    continue
+                    child_device = ""
+                    device = Load(object=parent_device, load_object=child_device)
+                    device.load_object = None
+                    self.units.load_units.append(device)
+
+                child_device = None
+
+            else:
+                continue
 
     def execute(self):
 
@@ -174,3 +194,7 @@ if __name__ == "__main__":
 
     extractor = UnitExtractor(emtp_object=emtp_object)
     extractor.execute()
+
+    loads = extractor.units.load_units
+    for load in loads:
+        print(load)
