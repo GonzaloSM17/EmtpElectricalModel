@@ -1,7 +1,7 @@
 from unit_extractor import *
 import time
 
-library_path_GS = "C:\\Users\\gonzalo.sanchez\\OneDrive - Coordinador Eléctrico Nacional\\C01. Simulación y Laboratorio en Tiempo Real\\04. EMTP Modelo Eléctrico\\09. Templates Reemplazo\\CEN Devices_v1.1.clf"
+library_path_GS = "C:\\Users\\gonzalo.sanchez\\OneDrive - Coordinador Eléctrico Nacional\\C01. Simulación y Laboratorio en Tiempo Real\\04. EMTP Modelo Eléctrico\\09. Templates Reemplazo\\CEN Devices_v0.2.clf"
 library_path_KA = "C:\\Users\\kelly.allendes\\Downloads\\CEN Devices.clf"
 
 
@@ -76,16 +76,16 @@ class ReplacingIBR:
             if self.device.object.orientation == "w":
                 self.attr_to_draw = {
                     "name": self.device.object.name,
-                    "posX": self.device.object.posX + 100,
-                    "posY": self.device.object.posY,
+                    "posX": self.device.object.posX + 10,
+                    "posY": self.device.object.posY + 300,
                     "orientation": self.device.object.orientation,
                 }
 
             else:
                 self.attr_to_draw = {
                     "name": self.device.object.name,
-                    "posX": self.device.object.posX - 100,
-                    "posY": self.device.object.posY,
+                    "posX": self.device.object.posX - 10,
+                    "posY": self.device.object.posY + 300,
                     "orientation": self.device.object.orientation,
                 }
         else:
@@ -188,6 +188,16 @@ class ReplacingIBR:
 
     def _resetting_attribute(self):
 
+        if "BESS" in self.new_device_object.object.name:
+            attr_unit = self.attr_unit
+            attr_unit["FRT_OFF"] = "0.2"
+            attr_unit["OVRT_protection"] = ""
+
+        else:
+            attr_unit = self.attr_unit
+            attr_unit["kp"] = "30"
+            attr_unit["ki"] = "300"
+
         # for unit
         Utils.set_params_from_dict_by_path(
             emtp_object=self.emtp_object,
@@ -252,7 +262,8 @@ if __name__ == "__main__":
     for unit in (
         # extractor.units.pv_units +
         # extractor.units.wf_units +
-        extractor.units.der_units
+        # extractor.units.der_units
+        extractor.units.bess_units
     ):
 
         # print(unit.object.name)

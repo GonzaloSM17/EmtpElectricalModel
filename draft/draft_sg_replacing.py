@@ -11,7 +11,7 @@ Only ordering and comments were added. The original execution logic is kept.
 
 from unit_extractor import *
 
-library_path_GS = "C:\\Users\\gonzalo.sanchez\\OneDrive - Coordinador Eléctrico Nacional\\C01. Simulación y Laboratorio en Tiempo Real\\04. EMTP Modelo Eléctrico\\09. Templates Reemplazo\\CEN Devices_v1.1.clf"
+library_path_GS = "C:\\Users\\gonzalo.sanchez\\OneDrive - Coordinador Eléctrico Nacional\\C01. Simulación y Laboratorio en Tiempo Real\\04. EMTP Modelo Eléctrico\\09. Templates Reemplazo\\CEN Devices_v0.2.clf"
 library_path_KA = "C:\\Users\\kelly.allendes\\Downloads\\CEN Devices.clf"
 
 
@@ -377,6 +377,6 @@ if __name__ == "__main__":
         # i += 1
         # if i >= 10:
 
-    Design.save(emtp_object=emtp_object)
-    Simulation.run_load_flow(emtp_object=emtp_object)
+    # Design.save(emtp_object=emtp_object)
+    # Simulation.run_load_flow(emtp_object=emtp_object)
     # break
