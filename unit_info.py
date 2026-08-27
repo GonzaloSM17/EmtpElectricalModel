@@ -74,12 +74,12 @@ if __name__ == "__main__":
         if is_inverter_based_unit(unit):
 
             # If later needed, only then uncomment:
-            unit_attr = Utils.get_params_to_dict_by_path(
-                emtp_object=emtp_object,
-                device_path=unit.unit_path,
-            )
-            s = round(float(unit_attr["Sgen"]) * float(unit_attr["Ngen"]), 2)
-            # s = None
+            # unit_attr = Utils.get_params_to_dict_by_path(
+            #     emtp_object=emtp_object,
+            #     device_path=unit.unit_path,
+            # )
+            # s = round(float(unit_attr["Sgen"]) * float(unit_attr["Ngen"]), 2)
+            s = None
             v_setpoint = None
             bus_type = "PQ"
             h = None
@@ -172,7 +172,7 @@ if __name__ == "__main__":
         "Load Manager": loads_info_list,
     }
 
-    with pd.ExcelWriter("EMTP Assets_v0.19.xlsx") as writer:
+    with pd.ExcelWriter("EMTP Assets_v0.23_CT3.xlsx") as writer:
 
         for sheet_name, asset_list in sheets.items():
 
